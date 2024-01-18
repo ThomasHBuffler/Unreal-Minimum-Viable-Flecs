@@ -11,6 +11,7 @@ public class FlecsLibrary : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"FlecsTest",
+			"Niagara"
 		});
 
 		//The path for the header files

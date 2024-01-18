@@ -5,23 +5,66 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "FlecsSubsystem.generated.h"
 
-struct FlecsTransform
+class UNiagaraSystem;
+class UNiagaraComponent;
+
+struct FlecksCollisionComponentRef
 {
-	FTransform Value;
+	FCollisionShape* Shape;
 };
+
+struct FlecsVFXRef
+{
+	UNiagaraComponent* Value;
+};
+
+struct FlecsSFXRef
+{
+	UAudioComponent* Value;
+};
+
+struct FlecsLocation
+{
+	FVector Value;
+};
+
+struct FlecsRotation
+{
+	FRotator Value;
+};
+
+struct FlecsVelocity
+{
+	FVector Value;
+};
+
+struct FlecsWorldAcceleration
+{
+	FVector Value;
+};
+
+struct FlecsLocalAcceleration
+{
+	FVector Value;
+};
+
+/*
 struct FlecsISMIndex
 {
 	int Value;
 };
+
 struct FlecsIsmRef
 {
 	UInstancedStaticMeshComponent* Value;
 };
+
 struct FlecsCorn
 {
 	float Growth;
 };
 struct Corns {};
+*/
 
 USTRUCT(BlueprintType)
 struct FFlecsEntityHandle
@@ -44,19 +87,12 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 	flecs::world* GetEcsWorld() const;
-	
-	UPROPERTY(EditAnywhere)
-	UInstancedStaticMeshComponent* CornRenderer = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UNiagaraSystem* ProjectileVFX = nullptr;
 	
-	UFUNCTION(BlueprintCallable, Category="FLECS")
-	void InitFlecs(UStaticMesh* InMesh);
-	UFUNCTION(BlueprintCallable, Category="FLECS")
-	FFlecsEntityHandle SpawnCornEntity(FVector location, FRotator rotation);
-	UFUNCTION(BlueprintCallable, Category="FLECS")
-	void SetEntityHighlight(FFlecsEntityHandle entityHandle, bool isHighlighted);
-	UFUNCTION(BlueprintCallable, Category="FLECS")
-	float GetEntityGrowthData(FFlecsEntityHandle entityHandle);
+	UFUNCTION(BlueprintCallable, Category = "FLECS")
+	FFlecsEntityHandle SpawnProjectileEntity(FVector location, FRotator rotation);
 
 protected:
 	FTickerDelegate OnTickDelegate;
