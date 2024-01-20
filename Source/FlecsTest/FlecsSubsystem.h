@@ -16,96 +16,183 @@ struct FFlecsEntityHandle
 		FFlecsEntityHandle() {}
 	FFlecsEntityHandle(int inId)
 	{
-		FlecsEntityId = inId;
+		FFlecsEntityId = inId;
 	}
 
 	UPROPERTY(BlueprintReadWrite)
-	int FlecsEntityId;
+	int FFlecsEntityId;
 };
 
-struct FlecsPlayerControllerRef
+struct FFlecsPlayerControllerRef
 {
 	APlayerController* Value;
 };
 
-struct FlecsTeamID
+struct FFlecsTeamID
 {
 	int Value;
 };
 
-struct FlecsProjectile {};
+struct FFlecsProjectile {};
 
-struct FlecksBaseStruct {};
-
-struct FlecsCollisionComponent
+struct FFlecksBaseStruct {};
+/*
+#pragma region Generic Collision Response
+UClASS(Abstract, Blueprintable, BlueprintType, EditInlineNew)
+class FLECSTEST_API UFlecsGenericCollisionResponse : public UObject
 {
-	FCollisionShape Shape;
-	FFlecsEntityHandle Owner;
+	GENERATED_BODY()
 
-	FlecsCollisionComponent() : Shape(FCollisionShape::MakeSphere(0)), Owner(0) {}
-
-	FlecsCollisionComponent(FCollisionShape inShape, FFlecsEntityHandle inOwner) : Shape(inShape), Owner(inOwner) {}
+public:
+	void Activate() { ; };
 };
 
-struct FlecsVFXRef
+// Explode on Death
+UCLASS()
+class FLECSTEST_API UFlecsGenericCollisionResponseDeath : public UFlecsGenericCollisionResponse
+{
+	GENERATED_BODY()
+
+};
+
+// Spawn VFX generic 
+UCLASS()
+class FLECSTEST_API UFlecsGenericCollisionResponseVFX : public UFlecsGenericCollisionResponse
+{
+	GENERATED_BODY()
+
+public:
+	void SpawnVFX(USceneComponent* HitComponent, FVector Location, FRotator Rotation)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAttached(
+	}
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UNiagaraSystem* VFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USoundBase* SFX = nullptr;
+};
+*/
+
+#pragma region Collision
+UCLASS(Abstract, Blueprintable, BlueprintType)
+class FLECSTEST_API UFlecsCollisionResponse : public UObject
+{
+	GENERATED_BODY()
+};
+
+UCLASS(Abstract, Blueprintable, BlueprintType, EditInlineNew)
+class FLECSTEST_API UFlecsCollisionResponseBounce : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	//Bounce properties
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Bounciness = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MinBounceSpeed = 50.0f;
+
+};
+#pragma endregion
+
+UCLASS(Abstract, Blueprintable, BlueprintType)
+class FLECSTEST_API UFlecsCollisionDetection : public UObject
+{
+	GENERATED_BODY()
+
+public:
+    // TArray of collision responses 
+
+	UFUNCTION(BlueprintNativeEvent)
+	void OnCollisionDetected(FFlecsEntityHandle HitEntity, FHitResult CollisionResult);
+	void OnCollisionDetected_Implementation(FFlecsEntityHandle HitEntity, FHitResult CollisionResult)
+	{
+
+	};
+};
+
+struct FFlecsCollisionComponentAndResponse
+{
+	FCollisionShape Shape;
+	ECollisionChannel Channel;
+
+	FFlecsCollisionComponentAndResponse() : Shape(FCollisionShape::MakeSphere(0)), Channel(ECC_Visibility) {}
+
+	FFlecsCollisionComponentAndResponse(FCollisionShape inShape, ECollisionChannel inChannel) : Shape(inShape), Channel(inChannel) {}
+};
+
+struct FFlecsCollisionClass
+{
+	FFlecsEntityHandle Owner;
+	TArray<FFlecsCollisionComponentAndResponse> CollisionComponents;
+
+	FFlecsCollisionClass(TArray<FFlecsCollisionComponentAndResponse> inCollisionComponents, FFlecsEntityHandle inOwner) : CollisionComponents(inCollisionComponents), Owner(inOwner) {}
+
+	FFlecsCollisionClass() { ; }
+};
+
+struct FFlecsVFXRef
 {
 	UNiagaraComponent* Value;
 
-	FlecsVFXRef() : Value(nullptr) {}
+	FFlecsVFXRef() : Value(nullptr) {}
 
-	FlecsVFXRef(UNiagaraComponent* inValue) : Value(inValue) {}
+	FFlecsVFXRef(UNiagaraComponent* inValue) : Value(inValue) {}
 };
 
-struct FlecsSFXRef
+struct FFlecsSFXRef
 {
 	UAudioComponent* Value;
 };
 
-struct FlecsLocation
+struct FFlecsLocation
 {
 	FVector Value;
 
-	FlecsLocation() : Value(FVector::ZeroVector) {}
+	FFlecsLocation() : Value(FVector::ZeroVector) {}
 
-	FlecsLocation(FVector inValue) : Value(inValue) {}
+	FFlecsLocation(FVector inValue) : Value(inValue) {}
 };
 
-struct FlecsRotation
+struct FFlecsRotation
 {
 	FRotator Value;
 };
 
-struct FlecsVelocity
+struct FFlecsVelocity
 {
 	FVector Value;
 
-	FlecsVelocity() : Value(FVector::ZeroVector) {}
+	FFlecsVelocity() : Value(FVector::ZeroVector) {}
 
-	FlecsVelocity(FVector inValue) : Value(inValue) {}
+	FFlecsVelocity(FVector inValue) : Value(inValue) {}
 };
 
-struct FlecsWorldAcceleration
+struct FFlecsWorldAcceleration
 {
 	FVector Value;
 };
 
-struct FlecsLocalAcceleration
+struct FFlecsLocalAcceleration
 {
 	FVector Value;
 };
 
 /*
-struct FlecsISMIndex
+struct FFlecsISMIndex
 {
 	int Value;
 };
 
-struct FlecsIsmRef
+struct FFlecsIsmRef
 {
 	UInstancedStaticMeshComponent* Value;
 };
 
-struct FlecsCorn
+struct FFlecsCorn
 {
 	float Growth;
 };
@@ -137,9 +224,12 @@ protected:
 private:
 	bool Tick(float DeltaTime);
 
-	void SweepMovement(FlecsLocation& FLoc, FlecsCollisionComponent& FCol, FlecsVelocity& FVel);
-	void UpdateVFX(FlecsLocation& FLoc, FlecsVelocity& FVel, FlecsVFXRef& FVFXRef);
+	void SweepMovement(FFlecsLocation& FFLoc, FFlecsCollisionClass& FFCol, FFlecsVelocity& FFVel);
+	void UpdateVFX(FFlecsLocation& FFLoc, FFlecsVelocity& FFVel, FFlecsVFXRef& FFVFXRef);
 
-	flecs::query<FlecsLocation, FlecsCollisionComponent, FlecsVelocity> FlecsQuerySweepMovement;
-	flecs::query<FlecsLocation, FlecsVelocity, FlecsVFXRef> FlecsQueryVFX;
+	flecs::query<FFlecsLocation, FFlecsCollisionClass, FFlecsVelocity> FFlecsQuerySweepMovement;
+	flecs::query<FFlecsVelocity, FFlecsLocalAcceleration> FFlecsQueryLocalAccelerationForce;
+	flecs::query<FFlecsVelocity, FFlecsWorldAcceleration> FFlecsQueryWorldAccelerationForce;
+	flecs::query<FFlecsLocation, FFlecsVelocity, FFlecsVFXRef> FFlecsQueryVFX;
+	flecs::query<FFlecsLocation, FFlecsVelocity, FFlecsSFXRef> FFlecsQuerySFX;
 };

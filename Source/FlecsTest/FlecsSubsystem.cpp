@@ -5,7 +5,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 
-// Lets define world as the function ECSWorld->c_ptr()
+// Lets define world as the FFunction ECSWorld->c_ptr()
 #define cworld ECSWorld->c_ptr()
 
 flecs::world* UFlecsSubsystem::GetEcsWorld() const{return ECSWorld;}
@@ -14,8 +14,8 @@ void UFlecsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	OnTickDelegate = FTickerDelegate::CreateUObject(this, &UFlecsSubsystem::Tick);
 	OnTickHandle = FTSTicker::GetCoreTicker().AddTicker(OnTickDelegate);
 	
-	//sets title in Flecs Explorer
-	char* argv[] = {"Minimum Viable Flecs"};
+	//sets title in FFlecs Explorer
+	char* argv[] = {"Minimum Viable FFlecs"};
 	ECSWorld = new flecs::world(1, argv);
 	
 	//flecs explorer and monitor
@@ -25,7 +25,7 @@ void UFlecsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	GetEcsWorld()->set<flecs::Rest>({});
 
 	/*
-	//expose values with names to Flecs Explorer for easier inspection & debugging
+	//expose values with names to FFlecs Explorer FFor easier inspection & debugging
 	GetEcsWorld()->component<FlecsCorn>().member<float>("Current Growth");
 	GetEcsWorld()->component<FlecsISMIndex>().member<int>("ISM Render index");	
 	*/
@@ -33,8 +33,8 @@ void UFlecsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	UE_LOG(LogTemp, Warning, TEXT("UUnrealFlecsSubsystem has started!"));
 	Super::Initialize(Collection);
 
-	FlecsQuerySweepMovement = GetEcsWorld()->query<FlecsLocation, FlecsCollisionComponent, FlecsVelocity>();
-	FlecsQueryVFX = GetEcsWorld()->query<FlecsLocation, FlecsVelocity, FlecsVFXRef>();
+	FFlecsQuerySweepMovement = GetEcsWorld()->query<FFlecsLocation, FFlecsCollisionClass, FFlecsVelocity>();
+	FFlecsQueryVFX = GetEcsWorld()->query<FFlecsLocation, FFlecsVelocity, FFlecsVFXRef>();
 }
 
 void UFlecsSubsystem::Deinitialize()
@@ -70,13 +70,13 @@ FFlecsEntityHandle UFlecsSubsystem::SpawnProjectileEntity(APlayerController* Pla
 	FCollisionShape Sphere = FCollisionShape::MakeSphere(10);
 	auto entity = GetEcsWorld()->entity();
 	entity
-		.set<FlecsPlayerControllerRef>({ PlayerController })
-		.set<FlecsVFXRef>({ UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ProjectileVFX, MuzzleLocation, Rotation, FVector(1,1,1), true, true, ENCPoolMethod::AutoRelease, false) })
-		.set<FlecsTeamID>({ 0 })
-		.set<FlecsLocation>({ FlecsLocation(Location) })
-		.set<FlecsCollisionComponent>({FlecsCollisionComponent(Sphere, int(entity.id()))})
-		.set<FlecsVelocity>({ FlecsVelocity(Rotation.Vector() * 100) })
-		.add<FlecsProjectile>()
+		.set<FFlecsPlayerControllerRef>({ PlayerController })
+		.set<FFlecsVFXRef>({ UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ProjectileVFX, MuzzleLocation, Rotation, FVector(1,1,1), true, true, ENCPoolMethod::AutoRelease, false) })
+		.set<FFlecsTeamID>({ 0 })
+		.set<FFlecsLocation>({ FFlecsLocation(Location) })
+		.set<FFlecsCollisionClass>({FFlecsCollisionClass()})
+		.set<FFlecsVelocity>({ FFlecsVelocity(Rotation.Vector() * 100) })
+		.add<FFlecsProjectile>()
 		.set_name(StringCast<ANSICHAR>("Projectile").Get());
 	return int(entity.id());
 }
@@ -85,13 +85,13 @@ FFlecsEntityHandle UFlecsSubsystem::SpawnProjectileEntitySpecific(APlayerControl
 {
 	auto entity = GetEcsWorld()->entity();
 	entity 
-		.set<FlecsPlayerControllerRef>({ PlayerController })
-		.set<FlecsVFXRef>({ UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ProjectileSystemVFX, MuzzleLocation, Rotation, FVector(1,1,1), true, true, ENCPoolMethod::AutoRelease, false) })
-		.set<FlecsTeamID>({ 0 })
-		.set<FlecsLocation>({ FlecsLocation(Location) })
-		.set<FlecsCollisionComponent>({ FCollisionShape::MakeSphere(Radius), int(entity.id()) })
-		.set<FlecsVelocity>({ FlecsVelocity(Rotation.Vector() * Speed) })
-		.add<FlecsProjectile>();
+		.set<FFlecsPlayerControllerRef>({ PlayerController })
+		.set<FFlecsVFXRef>({ UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ProjectileSystemVFX, MuzzleLocation, Rotation, FVector(1,1,1), true, true, ENCPoolMethod::AutoRelease, false) })
+		.set<FFlecsTeamID>({ 0 })
+		.set<FFlecsLocation>({ FFlecsLocation(Location) })
+		//.set<FFlecsCollisionClass>({ FCollisionShape::MakeSphere(Radius), int(entity.id()) })
+		.set<FFlecsVelocity>({ FFlecsVelocity(Rotation.Vector() * Speed) })
+		.add<FFlecsProjectile>();
 	return FFlecsEntityHandle{ int(entity.id()) };
 }
 
@@ -100,15 +100,15 @@ bool UFlecsSubsystem::Tick(float DeltaTime)
 {
 	if(ECSWorld) ECSWorld->progress(DeltaTime);
 
-	auto ECSQuery = ECSWorld->query_builder<FlecsLocation, FlecsCollisionComponent, FlecsVelocity>().build();
+	auto ECSQuery = ECSWorld->query_builder<FlecsLocation, FFlecsCollisionClass, FFlecsVelocity>().build();
 	ECSQuery.each(&SweepMovement);
 	/*
-	auto ECSQuery = ECSWorld->query_builder<FlecsLocation, FlecsCollisionComponent, FlecsVelocity>().build();
-	ECSQuery.each([](FlecsLocation& FLoc, FlecsCollisionComponent& FCol, FlecsVelocity& FVel, UFlecsSubsystem* inThis = this)
+	auto ECSQuery = ECSWorld->query_builder<FlecsLocation, FFlecsCollisionClass, FFlecsVelocity>().build();
+	ECSQuery.each([](FlecsLocation& FFLoc, FFlecsCollisionClass& FFCol, FFlecsVelocity& FFVel, UFlecsSubsystem* inThis = this)
 	{
 		FHitResult HitResult;
-		FVector Target = FLoc.Value + FVel.Value * inThis->GetWorld()->DeltaTimeSeconds;
-		if (inThis->GetWorld()->SweepSingleByChannel(HitResult, FLoc.Value, Target, FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(FCol.Shape.GetSphereRadius())))
+		FVector Target = FFLoc.Value + FFVel.Value * inThis->GetWorld()->DeltaTimeSeconds;
+		if (inThis->GetWorld()->SweepSingleByChannel(HitResult, FFLoc.Value, Target, FFQuat::Identity, ECC_Visibility, FFCollisionShape::MakeSphere(FCol.Shape.GetSphereRadius())))
 		{
 
 		}
@@ -118,11 +118,11 @@ bool UFlecsSubsystem::Tick(float DeltaTime)
 		}
 	});*/
 	/*
-	ECSWorld->query<FlecsProjectile, FlecsVelocity, FlecsLocation, FlecsCollisionComponent>().each([&](flecs::entity e, FlecsProjectile& projectile, FlecsVelocity& velocity)
+	ECSWorld->query<FlecsProjectile, FFlecsVelocity, FFlecsLocation, FFlecsCollisionClass>().each([&](flecs::entity e, FFlecsProjectile& projectile, FFlecsVelocity& velocity)
 	{
 		
 	});
-	ECSWorld->query<FlecsProjectile, FlecsLocation, FlecsVFXRef>().each([&](flecs::entity e, FlecsProjectile& projectile, FlecsVelocity& velocity)
+	ECSWorld->query<FlecsProjectile, FFlecsLocation, FFlecsVFXRef>().each([&](flecs::entity e, FFlecsProjectile& projectile, FFlecsVelocity& velocity)
 	{
 			UNiagaraComponent* NiagaraComponent = e.get<FlecsVFXRef>()->Value;
 			if (NiagaraComponent)
@@ -134,12 +134,12 @@ bool UFlecsSubsystem::Tick(float DeltaTime)
 	return true;
 }
 
-void UFlecsSubsystem::SweepMovement(FlecsLocation& FLoc, FlecsCollisionComponent& FCol, FlecsVelocity& FVel)
+void UFlecsSubsystem::SweepMovement(FlecsLocation& FFLoc, FFlecsCollisionClass& FFCol, FFlecsVelocity& FFVel)
 {
 	FHitResult HitResult;
-	FVector Target = FLoc.Value + FVel.Value * GetWorld()->DeltaTimeSeconds;
+	FVector Target = FFLoc.Value + FFVel.Value * GetWorld()->DeltaTimeSeconds;
 
-	if (GetWorld()->SweepSingleByChannel(HitResult, FLoc.Value, Target, FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(FCol.Shape.GetSphereRadius())))
+	if (GetWorld()->SweepSingleByChannel(HitResult, FFLoc.Value, Target, FFQuat::Identity, ECC_Visibility, FFCollisionShape::MakeSphere(FCol.Shape.GetSphereRadius())))
 	{
 		// Handle collision
 	}
@@ -154,20 +154,20 @@ bool UFlecsSubsystem::Tick(float DeltaTime)
 {
 	if (ECSWorld) ECSWorld->progress(DeltaTime);
 
-	// Capture 'this' in a lambda function
-	auto SweepMovementLambda = [this](FlecsLocation& FLoc, FlecsCollisionComponent& FCol, FlecsVelocity& FVel)
+	// Capture 'this' in a lambda FFunction
+	auto SweepMovementLambda = [this](FlecsLocation& FFLoc, FFlecsCollisionClass& FFCol, FFlecsVelocity& FFVel)
 	{
-		this->SweepMovement(FLoc, FCol, FVel);
+		this->SweepMovement(FLoc, FFCol, FFVel);
 	};
 
 	FlecsQuerySweepMovement.each(SweepMovementLambda);
 
 
-	//auto FlecsQueryVFX = ECSWorld->query_builder<FlecsLocation, FlecsVelocity, FlecsVFXRef>().build();
+	//auto FFlecsQueryVFX = ECSWorld->query_builder<FlecsLocation, FFlecsVelocity, FFlecsVFXRef>().build();
 
-	auto UpdateVFXLambda = [](FlecsLocation& FLoc, FlecsVelocity& FVel, FlecsVFXRef& FVFXRef)
+	auto UpdateVFXLambda = [](FlecsLocation& FFLoc, FFlecsVelocity& FFVel, FFlecsVFXRef& FFVFXRef)
 	{
-		UNiagaraComponent* NiagaraComponent = FVFXRef.Value;
+		UNiagaraComponent* NiagaraComponent = FFVFXRef.Value;
 		if (NiagaraComponent)
 		{
 			NiagaraComponent->SetWorldLocation(FLoc.Value);
@@ -184,38 +184,38 @@ bool UFlecsSubsystem::Tick(float DeltaTime)
 {
 	if (ECSWorld) ECSWorld->progress(DeltaTime);
 
-	FlecsQuerySweepMovement.each([this](FlecsLocation& FLoc, FlecsCollisionComponent& FCol, FlecsVelocity& FVel)
+	FFlecsQuerySweepMovement.each([this](FFlecsLocation& FFLoc, FFlecsCollisionClass& FFCol, FFlecsVelocity& FFVel)
 		{
-			SweepMovement(FLoc, FCol, FVel);
+			SweepMovement(FFLoc, FFCol, FFVel);
 		});
 
-	FlecsQueryVFX.each([this](FlecsLocation& FLoc, FlecsVelocity& FVel, FlecsVFXRef& FVFXRef)
+	FFlecsQueryVFX.each([this](FFlecsLocation& FFLoc, FFlecsVelocity& FFVel, FFlecsVFXRef& FFVFXRef)
 		{
-			UpdateVFX(FLoc, FVel, FVFXRef);
+			UpdateVFX(FFLoc, FFVel, FFVFXRef);
 		});
 
 	return true;
 }
 
 
-void UFlecsSubsystem::SweepMovement(FlecsLocation& FLoc, FlecsCollisionComponent& FCol, FlecsVelocity& FVel)
+void UFlecsSubsystem::SweepMovement(FFlecsLocation& FFLoc, FFlecsCollisionClass& FFCol, FFlecsVelocity& FFVel)
 {
 	FHitResult HitResult;
-	FVector Target = FLoc.Value + FVel.Value * GetWorld()->DeltaTimeSeconds;
-	//GEngine->AddOnScreenDebugMessage (-1, 0, FColor::Red, FString::Printf(TEXT("SweepMovement: %s"), *Target.ToString()));
-	if (GetWorld()->SweepSingleByChannel(HitResult, FLoc.Value, Target, FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(FCol.Shape.GetSphereRadius())))
+	FVector Target = FFLoc.Value + FFVel.Value * GetWorld()->DeltaTimeSeconds;
+	//GEngine->AddOnScreenDebugMessage (-1, 0, FFColor::Red, FFString::Printf(TEXT("SweepMovement: %s"), *Target.ToString())); //FCollisionShape::MakeSphere(FFCol.Shape.GetSphereRadius()
+	if (GetWorld()->SweepSingleByChannel(HitResult, FFLoc.Value, Target, FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(0)))
 	{
-		auto FlecsEntity = ECSWorld->get_alive(FCol.Owner.FlecsEntityId);
-		FlecsEntity.get<FlecsVFXRef>()->Value->DestroyComponent();
-		FlecsEntity.destruct();
+		auto FFlecsEntity = ECSWorld->get_alive(FFCol.Owner.FFlecsEntityId);
+		FFlecsEntity.get<FFlecsVFXRef>()->Value->DestroyComponent();
+		FFlecsEntity.destruct();
 	}
 	else
 	{
-		FLoc = FlecsLocation(Target);	
+		FFLoc = FFlecsLocation(Target);	
 	}
 }
 
-void UFlecsSubsystem::UpdateVFX(FlecsLocation& FLoc, FlecsVelocity& FVel, FlecsVFXRef& FVFXRef)
+void UFlecsSubsystem::UpdateVFX(FFlecsLocation& FFLoc, FFlecsVelocity& FFVel, FFlecsVFXRef& FFVFXRef)
 {
-	if (IsValid(FVFXRef.Value)) FVFXRef.Value->SetWorldLocation(FLoc.Value);
+	if (IsValid(FFVFXRef.Value)) FFVFXRef.Value->SetWorldLocation(FFLoc.Value);
 }
