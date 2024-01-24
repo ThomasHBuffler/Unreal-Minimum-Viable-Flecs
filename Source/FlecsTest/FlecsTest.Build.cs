@@ -10,7 +10,7 @@ public class FlecsTest : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "FlecsLibrary" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "FlecsLibrary", "StructUtils", "Niagara" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

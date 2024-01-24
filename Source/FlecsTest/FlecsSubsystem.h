@@ -5,6 +5,8 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "FlecsSubsystem.generated.h"
 
+struct FFlecsEntityHandle;
+
 struct FlecsTransform
 {
 	FTransform Value;
@@ -23,23 +25,13 @@ struct FlecsCorn
 };
 struct Corns {};
 
-USTRUCT(BlueprintType)
-struct FFlecsEntityHandle
-{
-	GENERATED_USTRUCT_BODY()
-	FFlecsEntityHandle()  {}
-	FFlecsEntityHandle(int inId)
-	{
-		FlecsEntityId = inId;
-	}
-	UPROPERTY(BlueprintReadWrite)
-	int FlecsEntityId;
-};
-
 UCLASS()
 class FLECSTEST_API UFlecsSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
+
+	TMap<UScriptStruct*, flecs::entity> EntityToScriptStruct;
+
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
@@ -48,11 +40,25 @@ public:
 	UPROPERTY(EditAnywhere)
 	UInstancedStaticMeshComponent* CornRenderer = nullptr;
 
+	flecs::entity GetComponentForScriptStruct(const UScriptStruct* ScriptStruct)
+	{
+		return *EntityToScriptStruct.Find(ScriptStruct);
+	}
+
+	void ApplyToEntity(flecs::entity& InEntity, struct FFLECSPrefab Prefab);
 	
+
+	void RegisterComponents();
+
 	UFUNCTION(BlueprintCallable, Category="FLECS")
 	void InitFlecs(UStaticMesh* InMesh);
 	UFUNCTION(BlueprintCallable, Category="FLECS")
 	FFlecsEntityHandle SpawnCornEntity(FVector location, FRotator rotation);
+	UFUNCTION(BlueprintCallable, Category = "FLECS")
+	FFlecsEntityHandle SpawnProjectile(FVector location, FRotator rotation);
+
+	UFUNCTION(BlueprintCallable, Category = "FLECS")
+	void SpawnEntityFromPrefab(UFlecsPrefabDefinition* FlecsPrefabDefinition, FVector Location, FRotator Rotation, AActor* Owner);
 	UFUNCTION(BlueprintCallable, Category="FLECS")
 	void SetEntityHighlight(FFlecsEntityHandle entityHandle, bool isHighlighted);
 	UFUNCTION(BlueprintCallable, Category="FLECS")
