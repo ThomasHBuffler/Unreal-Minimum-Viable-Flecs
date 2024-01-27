@@ -7,7 +7,28 @@
 #include "InstancedStruct.h"
 #include "FlecsComponents.h"
 #include "../../FlecsLibrary/Public/flecs.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "FlecsPrefabDefinition.generated.h"
+
+USTRUCT(BlueprintType)
+struct FLECSTEST_API FProjectileFX
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly)
+	float VFXSpawnChance = 1;
+
+	UPROPERTY(EditDefaultsOnly, meta = (EditConditionHides, EditCondition = "VisualFXSpawnChance < 0"))
+	UNiagaraSystem* ProjectileFXClass;
+
+	UPROPERTY(EditDefaultsOnly)
+	float SFXSpawnChance = 1;
+
+	UPROPERTY(EditDefaultsOnly, meta = (EditConditionHides, EditCondition = "VisualFXSpawnChance < 0"))
+	USoundBase* ProjectileSXClass;
+};
 
 /*
 #pragma region Components
@@ -229,11 +250,20 @@ class FLECSTEST_API UFlecsPrefabDefinition : public UDataAsset
        
     UPROPERTY(EditDefaultsOnly)
     TObjectPtr<UFlecsPrefabDefinition> ParentPrefab = nullptr;
-    
-    UPROPERTY(EditDefaultsOnly)
-    FFLECSPrefab Prefab;
 
-public: 
+	UPROPERTY(EditDefaultsOnly)
+	FFLECSPrefab Prefab;
+
+	UPROPERTY(EditDefaultsOnly)
+	FFLECSPrefabClassType PrefabClass;
+
+
+public:
+	UPROPERTY(EditDefaultsOnly)
+	FProjectileFX ProjectileFX;
+
 	FFLECSPrefab GetPrefab() const { return Prefab; }
+
+	FFLECSPrefabClassType GetPrefabClass() const { return PrefabClass; }
 
 };

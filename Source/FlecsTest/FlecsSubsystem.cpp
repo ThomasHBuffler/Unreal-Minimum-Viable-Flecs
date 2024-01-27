@@ -1,6 +1,9 @@
 #include "FlecsSubsystem.h"
 #include "FlecsComponents.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
 #include "FlecsPrefabDefinition.h"
 
 flecs::world* UFlecsSubsystem::GetEcsWorld() const{return ECSWorld;}
@@ -27,181 +30,202 @@ void UFlecsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 }
 
-void UFlecsSubsystem::ApplyToEntity(flecs::entity& InEntity, FFLECSPrefab Prefab)
+void UFlecsSubsystem::ApplyPrefabToEntity(flecs::entity& InEntity, FFLECSPrefab Prefab)
 {
-	for (auto& Component : Prefab.Components)
+	for (auto& Fragment : Prefab.Fragments)
 	{
-		if (flecs::entity ComponentEntity = GetComponentForScriptStruct(Component.GetScriptStruct()))
+		if (flecs::entity ComponentEntity = GetFragmentForScriptStruct(Fragment.GetScriptStruct()))
 		{
-			InEntity.set_ptr(ComponentEntity, Component.GetMemory());
+			InEntity.set_ptr(ComponentEntity, Fragment.GetMemory());
 		}
 	}
 }
 
-void UFlecsSubsystem::RegisterComponents()
+void UFlecsSubsystem::ApplyPrefabClassToEntity(flecs::entity& InEntity, FFLECSPrefabClassType Prefab)
 {
-	//register and map all components
-	flecs::component<FFLECSGenericComp>(*GetEcsWorld(), "FFLECSGenericComp");
-	EntityToScriptStruct.Add(TBaseStructure<FFLECSGenericComp>::Get(), GetEcsWorld()->entity("FFLECSGenericComp"));
+	for (auto& Fragment : Prefab.Fragments)
+	{
+		if (flecs::entity ComponentEntity = GetFragmentForScriptStruct(Fragment->GetScriptStruct()))
+		{
+			InEntity.set_ptr(ComponentEntity, Fragment->GetMemory());
+		}
+	}
+}
+
+void UFlecsSubsystem::RegisterFragments()
+{
+	//register and map all Fragments
+	flecs::component<FFLECSGenericFragment>(*GetEcsWorld(), "FFLECSGenericFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FFLECSGenericFragment>::Get(), GetEcsWorld()->entity("FFLECSGenericFragment"));
 	
+	//FOwnerEntity
 	flecs::component<FOwnerEntity>(*GetEcsWorld(), "FOwnerEntity");
 	EntityToScriptStruct.Add(TBaseStructure<FOwnerEntity>::Get(), GetEcsWorld()->entity("FOwnerEntity"));
 
-	flecs::component<FLocationComp>(*GetEcsWorld(), "FLocationComp");
-	EntityToScriptStruct.Add(TBaseStructure<FLocationComp>::Get(), GetEcsWorld()->entity("FLocationComp"));
+	//FLocationComp
+	flecs::component<FLocationFragment>(*GetEcsWorld(), "FLocationFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FLocationFragment>::Get(), GetEcsWorld()->entity("FLocationFragment"));
 
-	flecs::component<FRotationComp>(*GetEcsWorld(), "FRotationComp");
-	EntityToScriptStruct.Add(TBaseStructure<FRotationComp>::Get(), GetEcsWorld()->entity("FRotationComp"));
+	//FRotationComp
+	flecs::component<FRotationFragment>(*GetEcsWorld(), "FRotationFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FRotationFragment>::Get(), GetEcsWorld()->entity("FRotationFragment"));
 
-	flecs::component<FVelocityComp>(*GetEcsWorld(), "FVelocityComp");
-	EntityToScriptStruct.Add(TBaseStructure<FVelocityComp>::Get() , GetEcsWorld()->entity("FVelocityComp"));
+	//FVelocityComp
+	flecs::component<FVelocityFragment>(*GetEcsWorld(), "FVelocityFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FVelocityFragment>::Get() , GetEcsWorld()->entity("FVelocityFragment"));
 
-	flecs::component<FLocalAccelerationComp>(*GetEcsWorld(), "FLocalAccelerationComp");
-	EntityToScriptStruct.Add(TBaseStructure<FLocalAccelerationComp>::Get(), GetEcsWorld()->entity("FLocalAccelerationComp"));
+	//FLocalAccelerationComp
+	flecs::component<FLocalAccelerationFragment>(*GetEcsWorld(), "FLocalAccelerationFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FLocalAccelerationFragment>::Get(), GetEcsWorld()->entity("FLocalAccelerationFragment"));
 
-	flecs::component<FGravityAccelerationComp>(*GetEcsWorld(), "FGravityAccelerationComp");
-	EntityToScriptStruct.Add(TBaseStructure<FGravityAccelerationComp>::Get(), GetEcsWorld()->entity("FGravityAccelerationComp"));
+	//FGravityAccelerationComp
+	flecs::component<FGravityAccelerationFragment>(*GetEcsWorld(), "FGravityAccelerationFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FGravityAccelerationFragment>::Get(), GetEcsWorld()->entity("FGravityAccelerationFragment"));
 
-	flecs::component<FMassComp>(*GetEcsWorld(), "FMassComp");
-	EntityToScriptStruct.Add(TBaseStructure<FMassComp>::Get(), GetEcsWorld()->entity("FMassComp"));
+	//FMassComp
+	flecs::component<FMassFragment>(*GetEcsWorld(), "FMassFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FMassFragment>::Get(), GetEcsWorld()->entity("FMassFragment"));
 
-	flecs::component<FDragComp>(*GetEcsWorld(), "FDragComp");
-	EntityToScriptStruct.Add(TBaseStructure<FDragComp>::Get(), GetEcsWorld()->entity("FDragComp"));
+	//FDragComp
+	flecs::component<FDragFragment>(*GetEcsWorld(), "FDragFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FDragFragment>::Get(), GetEcsWorld()->entity("FDragFragment"));
 
-	flecs::component<FMaxSpeedComp>(*GetEcsWorld(), "FMaxSpeedComp");
-	EntityToScriptStruct.Add(TBaseStructure<FMaxSpeedComp>::Get(), GetEcsWorld()->entity("FMaxSpeedComp"));
-
+	//FMaxSpeedComp
+	flecs::component<FMaxSpeedFragment>(*GetEcsWorld(), "FMaxSpeedFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FMaxSpeedFragment>::Get(), GetEcsWorld()->entity("FMaxSpeedFragment"));
+	
+	//FGenericEvent
 	flecs::component<FGenericEvent>(*GetEcsWorld(), "FGenericEvent");
 	EntityToScriptStruct.Add(TBaseStructure<FGenericEvent>::Get(), GetEcsWorld()->entity("FGenericEvent"));
-
+	
 	//FTimerEventComp
-	flecs::component<FTimerEventComp>(*GetEcsWorld(), "FTimerEventComp");
-	EntityToScriptStruct.Add(TBaseStructure<FTimerEventComp>::Get(), GetEcsWorld()->entity("FTimerEventComp"));
+	flecs::component<FTimerEventFragment>(*GetEcsWorld(), "FTimerEventFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FTimerEventFragment>::Get(), GetEcsWorld()->entity("FTimerEventFragment"));
 
-	//FAliveStatus
-	flecs:: component<FAliveStatus>(*GetEcsWorld(), "FAliveStatus");
-	EntityToScriptStruct.Add(TBaseStructure<FAliveStatus>::Get(), GetEcsWorld()->entity("FAliveStatus"));
+	//FMarkAsGarbage
+	flecs::component<FMarkAsGarbage>(*GetEcsWorld(), "FMarkAsGarbage");
+	EntityToScriptStruct.Add(TBaseStructure<FMarkAsGarbage>::Get(), GetEcsWorld()->entity("FMarkAsGarbage"));
 
 	//FSpawnEvent
 	flecs::component<FSpawnEvent>(*GetEcsWorld(), "FSpawnEvent");
 	EntityToScriptStruct.Add(TBaseStructure<FSpawnEvent>::Get(), GetEcsWorld()->entity("FSpawnEvent"));
 
 	//FEntitySpawnerComp 
-	flecs::component<FEntitySpawnerComp>(*GetEcsWorld(), "FEntitySpawnerComp");
-	EntityToScriptStruct.Add(TBaseStructure<FEntitySpawnerComp>::Get(), GetEcsWorld()->entity("FEntitySpawnerComp"));
+	flecs::component<FEntitySpawnerFragment>(*GetEcsWorld(), "FEntitySpawnerFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FEntitySpawnerFragment>::Get(), GetEcsWorld()->entity("FEntitySpawnerFragment"));
 
 	//FFXSpawnerComp
-	flecs::component<FFXSpawnerComp>(*GetEcsWorld(), "FFXSpawnerComp");
-	EntityToScriptStruct.Add(TBaseStructure<FFXSpawnerComp>::Get(), GetEcsWorld()->entity("FFXSpawnerComp"));
+	flecs::component<FFXSpawnerFragment>(*GetEcsWorld(), "FFXSpawnerFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FFXSpawnerFragment>::Get(), GetEcsWorld()->entity("FFXSpawnerFragment"));
 
 	//FProjectileCollisionModule
 	flecs::component<FProjectileCollisionModule>(*GetEcsWorld(), "FProjectileCollisionModule");
 	EntityToScriptStruct.Add(TBaseStructure<FProjectileCollisionModule>::Get(), GetEcsWorld()->entity("FProjectileCollisionModule"));
-
+	
 	//FProjectileCollisionResponseComp
-	flecs::component<FProjectileCollisionResponseComp>(*GetEcsWorld(), "FProjectileCollisionResponseComp");
-	EntityToScriptStruct.Add(TBaseStructure<FProjectileCollisionResponseComp>::Get(), GetEcsWorld()->entity("FProjectileCollisionResponseComp"));
-
+	flecs::component<FProjectileCollisionResponseFragment>(*GetEcsWorld(), "FProjectileCollisionResponseFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FProjectileCollisionResponseFragment>::Get(), GetEcsWorld()->entity("FProjectileCollisionResponseFragment"));
+	
 	//FProjectileCollisionComp
-	flecs::component<FProjectileCollisionComp>(*GetEcsWorld(), "FProjectileCollisionComp");
-	EntityToScriptStruct.Add(TBaseStructure<FProjectileCollisionComp>::Get(), GetEcsWorld()->entity("FProjectileCollisionComp"));
-
+	flecs::component<FProjectileCollisionFragment>(*GetEcsWorld(), "FProjectileCollisionFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FProjectileCollisionFragment>::Get(), GetEcsWorld()->entity("FProjectileCollisionFragment"));
+	
 	//FProjectileCollisionManagerComp 
-	flecs::component<FProjectileCollisionManagerComp>(*GetEcsWorld(), "FProjectileCollisionManagerComp");
-	EntityToScriptStruct.Add(TBaseStructure<FProjectileCollisionManagerComp>::Get(), GetEcsWorld()->entity("FProjectileCollisionManagerComp"));
+	flecs::component<FProjectileCollisionManagerFragment>(*GetEcsWorld(), "FProjectileCollisionManagerFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FProjectileCollisionManagerFragment>::Get(), GetEcsWorld()->entity("FProjectileCollisionManagerFragment"));
 
 	//FImpactEffect
-	flecs::component<FImpactEffect>(*GetEcsWorld(), "FImpactEffect");
-	EntityToScriptStruct.Add(TBaseStructure<FImpactEffect>::Get(), GetEcsWorld()->entity("FImpactEffect"));
+	flecs::component<FImpactEffectFragment>(*GetEcsWorld(), "FImpactEffect");
+	EntityToScriptStruct.Add(TBaseStructure<FImpactEffectFragment>::Get(), GetEcsWorld()->entity("FImpactEffect"));
 
 	// FDamageComp
-	flecs::component<FDamageComp>(*GetEcsWorld(), "FDamageComp");
-	EntityToScriptStruct.Add(TBaseStructure<FDamageComp>::Get(), GetEcsWorld()->entity("FDamageComp"));
+	flecs::component<FDamageFragment>(*GetEcsWorld(), "FDamageFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FDamageFragment>::Get(), GetEcsWorld()->entity("FDamageFragment"));
 
 	//FAreaOfEffectDamageComp
-	flecs::component<FAreaOfEffectDamageComp>(*GetEcsWorld(), "FAreaOfEffectDamageComp");
-	EntityToScriptStruct.Add(TBaseStructure<FAreaOfEffectDamageComp>::Get(), GetEcsWorld()->entity("FAreaOfEffectDamageComp"));
+	flecs::component<FAreaOfEffectDamageFragment>(*GetEcsWorld(), "FAreaOfEffectDamageFragment");
+	EntityToScriptStruct.Add(TBaseStructure<FAreaOfEffectDamageFragment>::Get(), GetEcsWorld()->entity("FAreaOfEffectDamageFragment"));
 
 	//FProjectile
 	flecs::component<FProjectile>(*GetEcsWorld(), "FProjectile");
 	EntityToScriptStruct.Add(TBaseStructure<FProjectile>::Get(), GetEcsWorld()->entity("FProjectile"));
-
-
 }
 
 void UFlecsSubsystem::InitFlecs(UStaticMesh* InMesh)
 {
-	RegisterComponents();
+	RegisterFragments();
 
-	/*
-	//Spawn an actor and add an Instanced Static Mesh component to it.
-	//This will render our entities.
-	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	CornRenderer = Cast<UInstancedStaticMeshComponent>((GetWorld()->SpawnActor(AActor::StaticClass(), &FVector::ZeroVector, &FRotator::ZeroRotator, SpawnInfo))->AddComponentByClass(UInstancedStaticMeshComponent::StaticClass(), false, FTransform(FVector::ZeroVector), false));
-	CornRenderer->SetStaticMesh(InMesh);
-	CornRenderer->bUseDefaultCollision = false;
-	CornRenderer->SetGenerateOverlapEvents(false);
-	CornRenderer->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CornRenderer->SetCanEverAffectNavigation(false);
-	CornRenderer->NumCustomDataFloats = 2;
-
-	//this system processes the growth of our entities
-	auto system_grow = GetEcsWorld()->system<FlecsCorn>("Grow System")
-		.iter([](flecs::iter it, FlecsCorn* fc) {
-		float GrowthRate = 20 * it.delta_time();
-		for (int i : it) {
-			//if we haven't grown fully (100) then grow
-			fc[i].Growth += (fc[i].Growth < 100) * GrowthRate;
-		}
-	});
-	*/
-	auto System_SweepMovement  = GetEcsWorld()->system<FOwnerEntity, FOwnerActor, FLocationComp, FVelocityComp, FProjectileCollisionManagerComp>("Sweep Movement System")
-		.iter([this](flecs::iter it, FOwnerEntity* EntityOwner, FOwnerActor* OwnerActor, FLocationComp* LocComp, FVelocityComp* VelComp, FProjectileCollisionManagerComp* ProjCollManager) {
-		for (int i : it) {
-			// Print i in green for 0 seconds
-			GEngine -> AddOnScreenDebugMessage(-1, 0, FColor::Green, FString::FromInt(i));
-
-			FVector EndPoint = LocComp[i].Location + VelComp[i].Velocity * it.delta_time();
+	auto System_SweepMovement  = GetEcsWorld()->system<FOwnerEntity, FOwnerActor, FLocationFragment, FVelocityFragment, FProjectileCollisionManagerFragment>("Sweep Movement System")
+		.iter([this](flecs::iter it, FOwnerEntity* EntityOwner, FOwnerActor* OwnerActor, FLocationFragment* LocFragment, FVelocityFragment* VelFragment, FProjectileCollisionManagerFragment* ProjCollManager) {
+		for (int i : it) 
+		{
+			GEngine->AddOnScreenDebugMessage (1, 2, FColor::Red, FString::Printf(TEXT("Projectiles : %d"), i));
+			FVector EndPoint = LocFragment[i].Location + VelFragment[i].Velocity * it.delta_time();
 			FHitResult HitResult;
 			bool Killed = false;
-			DrawDebugPoint(GetWorld(), LocComp[i].Location, 25, FColor::Blue, false, 0);
-			for (auto Collision : ProjCollManager[i].Collisions)
+
+			for (auto& Collision : ProjCollManager[i].Collisions)
 			{
-				ECollisionChannel TraceChannel = Collision.Get<FProjectileCollisionComp>().TraceChannel;
-				FCollisionShape CollisionShape = Collision.Get<FProjectileCollisionComp>().CollisionShape;
-				if (GetWorld()->SweepSingleByChannel(HitResult, LocComp[i].Location, EndPoint, VelComp[i].Velocity.Rotation().Quaternion(), TraceChannel, CollisionShape, FCollisionQueryParams(), FCollisionResponseParams()))
+				ECollisionChannel TraceChannel = Collision.TraceChannel;
+				if (GetWorld()->SweepSingleByChannel(HitResult, LocFragment[i].Location, EndPoint, VelFragment[i].Velocity.Rotation().Quaternion(), TraceChannel, FCollisionShape::MakeSphere(Collision.Radius), FCollisionQueryParams(), FCollisionResponseParams()))
 				{
-					
 					if (HitResult.GetActor() != OwnerActor[i].Owner)
 					{
-						
-						// Print the ID number of the entity owner 
-						int ID = EntityOwner[i].OwnerEntity.is_alive();
-						// Lets destroy the entity by id
-
-
-
-						//GEngine ->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Entity Owner ID: %d"), ID));
-						EntityOwner[i].OwnerEntity.destruct();
-						//EntityOwner->OwnerEntity.al //.destruct();
-						//GetEcsWorld()->delete_with(ID);
-						//GetEcsWorld()->entity(it).set<FAliveStatus>({ FAliveStatus(false) });
-						//GetEcsWorld()->entity(EntityOwner[i].Owner.FlecsEntityId).destruct();
-						for (auto CollisionResponse : Collision.Get<FProjectileCollisionComp>().CollisionResponses)
+						for (auto& CollisionResponse : Collision.CollisionResponses)
 						{
-							// Print the 
-							/*
-							EntityOwner->OwnerEntity.destruct();
-								
-							for (auto Event : CollisionResponse.Get<FProjectileCollisionResponseComp>().EventsToTrigger)
-							{//<FAliveStatus>({});
-								
-								if (flecs::entity ComponentEntity = GetComponentForScriptStruct(Event.GetScriptStruct()))
+							if (CollisionResponse.Bounces-- >= 1)
+							{
+								for (auto& Event : CollisionResponse.BounceEventsToTrigger)
 								{
-									flecs::entity(EntityOwner[i].Owner.FlecsEntityId).set_ptr(ComponentEntity, Event.GetMemory());
+									
+									if (flecs::entity FragmentonentEntity = GetFragmentForScriptStruct(Event.GetScriptStruct()))
+									{
+										EntityOwner[i].OwnerEntity.set_ptr(FragmentonentEntity, Event.GetMemory());
+									}
 								}
-							}*/
+								for (auto& Tag : CollisionResponse.BounceTagsToAdd)
+								{
+									if (flecs::entity FragmentonentEntity = GetFragmentForScriptStruct(Tag.GetScriptStruct()))
+									{
+										EntityOwner[i].OwnerEntity.add(FragmentonentEntity);
+									}
+								}
+								for (auto& Effect : CollisionResponse.ImpactEffects)
+								{
+									if (flecs::entity FragmentonentEntity = GetFragmentForScriptStruct(Effect.GetScriptStruct()))
+									{
+										EntityOwner[i].OwnerEntity.set_ptr(FragmentonentEntity, Effect.GetMemory());
+									}
+								}
+
+								VelFragment[i].Velocity = UKismetMathLibrary::GetReflectionVector(VelFragment[i].Velocity, HitResult.ImpactNormal) * CollisionResponse.BounceFactor;
+								LocFragment[i].Location = HitResult.Location + HitResult.Normal * 0.01f;
+							}
+							else
+							{
+								
+								for (auto& Event : CollisionResponse.EventsToTrigger)
+								{
+									if (flecs::entity FragmentonentEntity = GetFragmentForScriptStruct(Event.GetScriptStruct()))
+									{
+										EntityOwner[i].OwnerEntity.set_ptr(FragmentonentEntity, Event.GetMemory());
+									}
+								}
+								for (auto& Tag : CollisionResponse.TagsToAdd)
+								{
+									if (flecs::entity FragmentonentEntity = GetFragmentForScriptStruct(Tag.GetScriptStruct()))
+									{
+										EntityOwner[i].OwnerEntity.add(FragmentonentEntity);
+									}
+								}
+								for (auto& Effect : CollisionResponse.ImpactEffects)
+								{
+									if (flecs::entity FragmentonentEntity = GetFragmentForScriptStruct(Effect.GetScriptStruct()))
+									{
+										EntityOwner[i].OwnerEntity.set_ptr(FragmentonentEntity, Effect.GetMemory());
+									}
+								}
+							}
 						}
 						Killed = true;
 						break;
@@ -210,64 +234,163 @@ void UFlecsSubsystem::InitFlecs(UStaticMesh* InMesh)
 			}		
 			if (!Killed)
 			{
-				LocComp[i].Location = EndPoint;
+				LocFragment[i].Location = EndPoint;
 			}
 		}
 	});
-	/*
-	// Kill entities that have been marked as garbage and have entityowner component
-	auto System_KillGarbage = GetEcsWorld()->system<FAliveStatus, FOwnerEntity>("Is Alive Status")
-		.iter([this](flecs::iter it, FAliveStatus* AliveStatus, FOwnerEntity* EntityOwner) {
+
+
+
+	// Update the location of the visual component
+	auto System_UpdateVisualLocation = GetEcsWorld()->system<FOwnerEntity, FLocationFragment, FVelocityFragment, FVisualEffect>("Update Visual Location System")
+		.iter([this](flecs::iter it, FOwnerEntity* EntityOwner, FLocationFragment* LocFragment, FVelocityFragment* VelFragment, FVisualEffect* VisualComponent) {
 		for (int i : it) {
-			if (!AliveStatus[i].bIsAlive)
+			if (VisualComponent[i].VisualEffect)
 			{
-				GetEcsWorld()->entity(EntityOwner[i].Owner.FlecsEntityId).destruct();
+				VisualComponent[i].VisualEffect->SetWorldLocationAndRotation(FMath::VInterpTo(VisualComponent[i].VisualEffect->GetComponentLocation(), LocFragment[i].Location, it.delta_time(), 35), VelFragment[i].Velocity.Rotation());
 			}
-			GEngine->AddOnScreenDebugMessage( - 1, 0, FColor::Red, FString::Printf(TEXT("Is Alive Status %d"), AliveStatus[i].bIsAlive));
 		}
 	});
-	*/
-	
-	/*
-	auto System_SweepMovement2 = GetEcsWorld()->system<FLocationComp, FVelocityComp>("Sweep Movement System 2")
-		.iter([this](flecs::iter it, FLocationComp* LocComp, FVelocityComp* VelComp) {
+
+	// Update the location of the sound component
+	auto System_UpdateSoundLocation = GetEcsWorld()->system<FOwnerEntity, FLocationFragment, FVelocityFragment, FSoundEffect>("Update Sound Location System")
+		.iter([this](flecs::iter it, FOwnerEntity* EntityOwner, FLocationFragment* LocFragment, FVelocityFragment* VelFragment, FSoundEffect* SoundComponent) {
 		for (int i : it) {
-			FVector EndPoint = LocComp[i].Location + VelComp[i].Velocity * it.delta_time();
-			FHitResult HitResult;
-			if (GetWorld()->SweepSingleByChannel(HitResult, LocComp[i].Location, EndPoint, VelComp[i].Velocity.Rotation().Quaternion(), ECC_Visibility, FCollisionShape::MakeSphere(1), FCollisionQueryParams(), FCollisionResponseParams()))
+			if (SoundComponent[i].SoundEffect)
 			{
-				DrawDebugPoint(GetWorld(), LocComp[i].Location, 3, FColor::Orange, false, 0);
+				// Sound component might need to interpolate from its location to the LocationFragment location
+				SoundComponent[i].SoundEffect->SetWorldLocationAndRotation(FMath::VInterpTo(SoundComponent[i].SoundEffect->GetComponentLocation(), LocFragment[i].Location, it.delta_time(), 35), VelFragment[i].Velocity.Rotation());
+			}
+		}
+	});
+
+	// System to handle timers 
+	auto System_Timer = GetEcsWorld()->system<FOwnerEntity, FTimerEventFragment>("Timer System")
+		.iter([this](flecs::iter it, FOwnerEntity* EntityOwner, FTimerEventFragment* TimerEvent) {
+		for (int i : it) {
+			if (TimerEvent[i].TimeSeconds > 0)
+			{
+				TimerEvent[i].TimeSeconds -= it.delta_time();
 			}
 			else
 			{
-				LocComp[i].Location = EndPoint;
-				DrawDebugPoint(GetWorld(), LocComp[i].Location, 1,FColor::Green, false, 0);
+				for (auto& Event : TimerEvent[i].EventsToTrigger)
+				{
+					if (flecs::entity FragmentonentEntity = GetFragmentForScriptStruct(Event.GetScriptStruct()))
+					{
+						EntityOwner[i].OwnerEntity.add(FragmentonentEntity);
+					}
+				}
+				EntityOwner[i].OwnerEntity.remove<FTimerEventFragment>();
+			}
+		}
+	});
+
+	// Destroy visual components that have been set as dead (So just markasgarbage and visualcomponent)
+	auto System_DestroyVisualComponent = GetEcsWorld()->system<FMarkAsGarbage, FVisualEffect>("Destroy Visual Component System")
+		.iter([this](flecs::iter it, FMarkAsGarbage* MarkedAsGarbage, FVisualEffect* VisualComponent) {
+		for (int i : it) {
+			if (VisualComponent[i].VisualEffect)
+			{
+				VisualComponent[i].VisualEffect->DestroyComponent();
+			}
+		}
+	});
+
+	// Destroy sound components that have been set as dead (So just markasgarbage and soundcomponent)
+	auto System_DestroySoundComponent = GetEcsWorld()->system<FMarkAsGarbage, FSoundEffect>("Destroy Sound Component System")
+		.iter([this](flecs::iter it, FMarkAsGarbage* MarkedAsGarbage, FSoundEffect* SoundComponent) {
+		for (int i : it) {
+			if (SoundComponent[i].SoundEffect)
+			{
+				SoundComponent[i].SoundEffect->DestroyComponent();
+			}
+		}
+	});
+
+	// Kill entities that have been set as dead and have entityowner Fragmentonent
+	auto System_KillGarbage = GetEcsWorld()->system<FOwnerEntity, FMarkAsGarbage >("Is Alive Status")
+		.iter([this](flecs::iter it, FOwnerEntity* EntityOwner, FMarkAsGarbage* MarkedAsGarbage) {
+		for (int i : it) {
+			EntityOwner[i].OwnerEntity.destruct();
+		}
+	});
+
+	// Apply local acceleration to entities that have LocalAccelerationFragment
+	auto System_ApplyLocalAcceleration = GetEcsWorld()->system<FLocalAccelerationFragment, FVelocityFragment>("Apply Local Acceleration System")
+		.iter([this](flecs::iter it, FLocalAccelerationFragment* LocalAccFragment, FVelocityFragment* VelFragment) {
+		for (int i : it) {
+			VelFragment[i].Velocity += VelFragment[i].Velocity.GetSafeNormal() * LocalAccFragment[i].Acceleration * it.delta_time();
+		}
+	});
+
+	// Apply gravity force to entities that have gravity Fragmentonent
+	auto System_ApplyGravity = GetEcsWorld()->system<FGravityAccelerationFragment, FVelocityFragment>("Apply Gravity System")
+		.iter([this](flecs::iter it, FGravityAccelerationFragment* GravityFragment, FVelocityFragment* VelFragment) {
+		for (int i : it) {
+			VelFragment[i].Velocity += FVector(0, 0, GravityFragment[i].Gravity) * it.delta_time();
+		}
+	});
+
+	// Apply drag force to entities that have drag Fragmentonent
+	auto System_ApplyDrag = GetEcsWorld()->system<FDragFragment, FVelocityFragment>("Apply Drag System")
+		.iter([this](flecs::iter it, FDragFragment* DragFragment, FVelocityFragment* VelFragment) {
+		for (int i : it) {
+			VelFragment[i].Velocity *= FMath::Pow(1 - DragFragment[i].Drag, it.delta_time());
+		}
+	});
+
+	// Limit max velocity of entities that have max speed Fragmentonent
+	auto System_LimitMaxSpeed = GetEcsWorld()->system<FMaxSpeedFragment, FVelocityFragment>("Limit Max Speed System")
+		.iter([this](flecs::iter it, FMaxSpeedFragment* MaxSpeedFragment, FVelocityFragment* VelFragment) {
+		for (int i : it) {
+			if (VelFragment[i].Velocity.Size() > MaxSpeedFragment[i].MaxSpeed)
+			{
+				VelFragment[i].Velocity = VelFragment[i].Velocity.GetSafeNormal() * MaxSpeedFragment[i].MaxSpeed;
+			}
+		}
+	});
+	
+	/*
+	auto System_SweepMovement2 = GetEcsWorld()->system<FLocationFragment, FVelocityFragment>("Sweep Movement System 2")
+		.iter([this](flecs::iter it, FLocationFragment* LocFragment, FVelocityFragment* VelFragment) {
+		for (int i : it) {
+			FVector EndPoint = LocFragment[i].Location + VelFragment[i].Velocity * it.delta_time();
+			FHitResult HitResult;
+			if (GetWorld()->SweepSingleByChannel(HitResult, LocFragment[i].Location, EndPoint, VelFragment[i].Velocity.Rotation().Quaternion(), ECC_Visibility, FCollisionShape::MakeSphere(1), FCollisionQueryParams(), FCollisionResponseParams()))
+			{
+				DrawDebugPoint(GetWorld(), LocFragment[i].Location, 3, FColor::Orange, false, 0);
+			}
+			else
+			{
+				LocFragment[i].Location = EndPoint;
+				DrawDebugPoint(GetWorld(), LocFragment[i].Location, 1,FColor::Green, false, 0);
 			}
 		}
 	});
 	*/
 	/*
-	auto System_ApplyGravity = GetEcsWorld()->system<FLocationComp, FVelocityComp>("Apply Gravity System")
-	.iter([this](flecs::iter it, FVelocityComp* VelComp, FGravityAccelerationComp* GravAccel) {
+	auto System_ApplyGravity = GetEcsWorld()->system<FLocationFragment, FVelocityFragment>("Apply Gravity System")
+	.iter([this](flecs::iter it, FVelocityFragment* VelFragment, FGravityAccelerationFragment* GravAccel) {
 		for (int i : it) {
-			VelComp[i].Velocity += FVector(0, 0, GravAccel[i].Gravity) * it.delta_time();
+			VelFragment[i].Velocity += FVector(0, 0, GravAccel[i].Gravity) * it.delta_time();
 		}
 	});
 	
-	auto System_ApplyLocalAcceleration = GetEcsWorld()->system<FLocationComp, FVelocityComp>("Apply Local Acceleration System")
-	.iter([this](flecs::iter it, FVelocityComp* VelComp, FLocalAccelerationComp* LocalAccel) {
+	auto System_ApplyLocalAcceleration = GetEcsWorld()->system<FLocationFragment, FVelocityFragment>("Apply Local Acceleration System")
+	.iter([this](flecs::iter it, FVelocityFragment* VelFragment, FLocalAccelerationFragment* LocalAccel) {
 		for (int i : it) {
-			VelComp[i].Velocity += LocalAccel[i].Acceleration * it.delta_time();
+			VelFragment[i].Velocity += LocalAccel[i].Acceleration * it.delta_time();
 		}
 	});
 	
 	// Limit speed to max speed @todo optimize
-	auto System_LimitSpeed = GetEcsWorld()->system<FLocationComp, FVelocityComp>("Limit Speed System")
-	.iter([this](flecs::iter it, FVelocityComp* VelComp, FMaxSpeedComp* MaxSpeed) {
+	auto System_LimitSpeed = GetEcsWorld()->system<FLocationFragment, FVelocityFragment>("Limit Speed System")
+	.iter([this](flecs::iter it, FVelocityFragment* VelFragment, FMaxSpeedFragment* MaxSpeed) {
 		for (int i : it) {
 			if (
-				VelComp[i].Velocity.Size() > MaxSpeed[i].MaxSpeed) {
-				VelComp[i].Velocity = VelComp[i].Velocity.GetSafeNormal() * MaxSpeed[i].MaxSpeed;
+				VelFragment[i].Velocity.Size() > MaxSpeed[i].MaxSpeed) {
+				VelFragment[i].Velocity = VelFragment[i].Velocity.GetSafeNormal() * MaxSpeed[i].MaxSpeed;
 			}
 		}
 	});
@@ -311,50 +434,34 @@ FFlecsEntityHandle UFlecsSubsystem::SpawnCornEntity(FVector location, FRotator r
 }
 
 FFlecsEntityHandle UFlecsSubsystem::SpawnProjectile(FVector location, FRotator rotation)
-{	/*
-	// GEneric events
-	TArray<FGenericEvent> EventsToTrigger = { FAliveStatus() };
-	TArray<FInstancedStruct> InEventsToTrigger;
-	FInstancedStruct::Make<FGenericEvent>(InEventsToTrigger, EventsToTrigger);
-
-	// Collision responses
-	TArray<FProjectileCollisionResponseComp> CollisionResponses = { FProjectileCollisionResponseComp(InEventsToTrigger, TArray<FInstancedStruct>()) };
-	TArray<FInstancedStruct> InCollisionResponses;
-	FInstancedStruct::Make<FProjectileCollisionResponseComp>(InCollisionResponses, CollisionResponses);
-	
-	// CollisionComp
-	FCollisionShape CollisionShape = FCollisionShape::MakeSphere(1);
-	FProjectileCollisionComp InCollisions(CollisionShape, ECollisionChannel::ECC_Visibility, InCollisionResponses);
-	TArray<FInstancedStruct> Collisions;
-	FInstancedStruct::Make<FProjectileCollisionComp>(Collisions, InCollisions);
-	FProjectileCollisionManagerComp CollisionManagerComp = FProjectileCollisionManagerComp(Collisions);
-	*/
-	auto entity = GetEcsWorld()->entity();
-	entity
-		.set<FOwnerEntity>({ FOwnerEntity(entity.id(),entity) })
-		//.set<FProjectileCollisionManagerComp>({ CollisionManagerComp })
-		.set<FLocationComp>({ FLocationComp(location) })
-		.set<FVelocityComp>({ FVelocityComp(rotation.Vector() * 100) })
-		.set<FGravityAccelerationComp>({ FGravityAccelerationComp() })
-		.set<FLocalAccelerationComp>({ FLocalAccelerationComp(FVector(10, 0, 0)) });
-
-
-	auto vel = entity.get<FVelocityComp>()->Velocity;
-
-	return FFlecsEntityHandle{ int(entity.id()) };
+{
+	return FFlecsEntityHandle{ -1 };
 }
 
-void UFlecsSubsystem::SpawnEntityFromPrefab(UFlecsPrefabDefinition* FlecsPrefabDefinition, FVector Location, FRotator Rotation, AActor* Owner)
+void UFlecsSubsystem::SpawnProjectileFromPrefab(UFlecsPrefabDefinition* FlecsPrefabDefinition, FVector Location, FVector MuzzleLocation, FRotator Rotation, AActor* Owner)
 {
-	flecs::entity entity = GetEcsWorld()->entity(); 
+	flecs::entity entity = GetEcsWorld()->entity();
 	entity.set<FOwnerEntity>({ FOwnerEntity(entity.id(), entity) });
-	FFLECSPrefab Prefab;
-	Prefab = FlecsPrefabDefinition->GetPrefab();
-	ApplyToEntity(entity, Prefab);
-	entity.set<FLocationComp>({ FLocationComp(Location) });
-	entity.set<FVelocityComp>({ Rotation.Quaternion().RotateVector(entity.get<FVelocityComp>()->Velocity) });
-	entity.set<FAliveStatus>({ FAliveStatus(true) });
 	if (IsValid(Owner)) entity.set<FOwnerActor>({ FOwnerActor(Owner) });
+
+	if (FlecsPrefabDefinition->ProjectileFX.VFXSpawnChance >= FMath::RandRange(0, 1))
+	{
+		entity.set<FVisualEffect>({
+			FVisualEffect(UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), FlecsPrefabDefinition->ProjectileFX.ProjectileFXClass, MuzzleLocation, Rotation))
+			});
+	}
+	if (FlecsPrefabDefinition->ProjectileFX.SFXSpawnChance >= FMath::RandRange(0, 1))
+	{
+		entity.set<FSoundEffect>({
+			FSoundEffect(UGameplayStatics::SpawnSoundAtLocation(GetWorld(), FlecsPrefabDefinition->ProjectileFX.ProjectileSXClass, MuzzleLocation, Rotation))
+			});
+	}
+
+	FFLECSPrefabClassType PrefabClass = FlecsPrefabDefinition->GetPrefabClass();
+	ApplyPrefabClassToEntity(entity, PrefabClass);
+
+	entity.set<FLocationFragment>({ Location });
+	entity.set<FVelocityFragment>({ Rotation.Quaternion().RotateVector(entity.get<FVelocityFragment>()->Velocity) });
 }
 
 void UFlecsSubsystem::SetEntityHighlight(FFlecsEntityHandle entityHandle, bool isHighlighted)

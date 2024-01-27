@@ -40,15 +40,15 @@ public:
 	UPROPERTY(EditAnywhere)
 	UInstancedStaticMeshComponent* CornRenderer = nullptr;
 
-	flecs::entity GetComponentForScriptStruct(const UScriptStruct* ScriptStruct)
+	flecs::entity GetFragmentForScriptStruct(const UScriptStruct* ScriptStruct)
 	{
 		return *EntityToScriptStruct.Find(ScriptStruct);
 	}
 
-	void ApplyToEntity(flecs::entity& InEntity, struct FFLECSPrefab Prefab);
-	
+	void ApplyPrefabToEntity(flecs::entity& InEntity, struct FFLECSPrefab Prefab);
+	void ApplyPrefabClassToEntity(flecs::entity& InEntity, struct FFLECSPrefabClassType Prefab);
 
-	void RegisterComponents();
+	void RegisterFragments();
 
 	UFUNCTION(BlueprintCallable, Category="FLECS")
 	void InitFlecs(UStaticMesh* InMesh);
@@ -58,7 +58,7 @@ public:
 	FFlecsEntityHandle SpawnProjectile(FVector location, FRotator rotation);
 
 	UFUNCTION(BlueprintCallable, Category = "FLECS")
-	void SpawnEntityFromPrefab(UFlecsPrefabDefinition* FlecsPrefabDefinition, FVector Location, FRotator Rotation, AActor* Owner);
+	void SpawnProjectileFromPrefab(UFlecsPrefabDefinition* FlecsPrefabDefinition, FVector Location, FVector MuzzleLocation, FRotator Rotation, AActor* Owner);
 	UFUNCTION(BlueprintCallable, Category="FLECS")
 	void SetEntityHighlight(FFlecsEntityHandle entityHandle, bool isHighlighted);
 	UFUNCTION(BlueprintCallable, Category="FLECS")
